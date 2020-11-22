@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - geometry - cube</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				margin: 0px;
+				background-color: #000000;
+				overflow: hidden;
+			}
+
+			.ui{
+				position: absolute;
+			}
+			button{
+				margin: 20px;
+				
+			}
+		</style>
+	</head>
+	<body>
+		
+		<script src="three.js/build/three.r89.min.js"></script>
+		<script src="js/controls/OrbitControls.js"></script>
+		<script src="js/libs/dat.gui.min.js"></script>
+		
+		<button type="button" style="top:0; padding:15px; margin:50px; outline-style: double; outline-width: medium; font-size:20px;"	
+			id="fire" class="ui">Start</button>
+		<button type="button" style="left:100px; padding:15px; margin:50px; outline-style: double; outline-width: medium; font-size:20px;"
+			id="start" class="ui">Restart</button>
+		
+		<script>
+			"use strict";
+			var controls;
+			var light, light2, light3;
+			var camera, scene, renderer;
+			
+			var gui, params;
+			var heading = 0;
+			var barrelheading = 0;
+			var velocity=0;
+			var lastTime;
+			var wheels = []
+			var balls = []
+			var fire = false;
+			
+			/*mesh*/
+			var plane ;
+			var tank;
+			var body;
+			var wheel;
+			var dome;
+			var turretPivot;
+			var turret;
+			var cycle;
+			var ballsystem;
+			var ball;
+
+			/*parameter*/
+			var gravity = -9.8; // 向上為正
+			var fallingTime = 0;
+			var shootSpeed = 20; 
+			var Py,Pz;
+			var turretPivotRrotationX = Math.PI / 180;
+			var ballnum = 10;
+			var shootTimes = 0;
+			var cameraPositionX, cameraPositionY, cameraPositionZ;
+			var followSwitch = false;
+
+			/*button*/
+			var buttons = document.getElementsByTagName("button");
+			buttons[0].addEventListener("click", startClick, false);
+			buttons[1].addEventListener("click", restartClick, false);
+
+			var guiMe = function() {
+			  this.Heading = heading;
+			  this.BarrelHeading = barrelheading;
+			  this.Velocity = velocity;
+			  this.addSpeed = 10;
+			  this.rotSpeed = 10;
+			  this.barrelRotSpeed =10;
+			  this.Stop = function() {
+			   	velocity = 0;
+			  	this.Velocity = velocity;
+			  };
+			  this.FollowMe = false;
+			};
+
+			function makeBall(){
+				var ballGeometry = new THREE.SphereGeometry(2,32,32);
+				var ballMaterial = new THREE.MeshBasicMaterial({color:0x000000});
+				return new THREE.Mesh( ballGeometry, ballMaterial);
+			}
+
+			function creatEnemy(){
+				var eneTexture = new THREE.TextureLoader().load('textures/BB8.jpg');
+				var eneMaterial = new THREE.MeshPhongMaterial({map: eneTexture}); 
+				var eneGeometry = new THREE.SphereGeometry(30,32,32);
+				var enemy = new THREE.Mesh(eneGeometry, eneMaterial);
+				enemy.position.z += 50;
+				enemy.position.x += Math.sin(Date.now() % 360);
+				enemy.position.y += Math.sin(Date.now() % 360);
+				plane.add(enemy);
+			}
+
+			function startClick(event) {
+				alert("start!");
+				creatEnemy();
+			}
+			function restartClick(event) {	alert("restart!");	}
+			
+			init();
+			animate();
+
+			function init() {
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 10, 5000 );
+				camera.position.y = 500;
+				camera.position.z = 400;
+				cameraPositionX = camera.position.x;
+				cameraPositionY = camera.position.y;
+				cameraPositionZ = camera.position.z;
+				scene = new THREE.Scene();
+				
+				/*light*/
+				light = new THREE.DirectionalLight(0xffffff);
+				light.position.set(100,200,400);
+				scene.add(light);
+				light2 = new THREE.DirectionalLight(0xffffff);
+				light2.position.set(-400,200,-400);
+				scene.add(light2);
+				light3 = new THREE.DirectionalLight(0xffffff);
+				light3.position.set(100,-400,-400);
+				scene.add(light3);
+
+				/*plane*/
+				var texture = new THREE.TextureLoader().load( 'textures/UV_Grid_Sm.jpg' );
+				var geometry = new THREE.PlaneGeometry( 1000, 1000 );
+				var material = new THREE.MeshPhongMaterial( {map: texture, side: THREE.DoubleSide} );
+				plane = new THREE.Mesh( geometry, material );
+				plane.rotation.x = -90 * Math.PI / 180;
+				plane.position.y = 0.0;
+				scene.add( plane );
+				
+				/*tank*/
+				tank = new THREE.Object3D();
+				scene.add(tank);
+
+				/*body*/
+				const carWidth = 100;
+ 				const carHeight = 50;
+				const carLength = 160;
+				const bodyGeometry = new THREE.BoxBufferGeometry(carWidth, carHeight, carLength);
+				const bodyTexture = new THREE.TextureLoader().load( 'textures/tank.jpg' );
+				const bodyMaterial = new THREE.MeshPhongMaterial({ map: bodyTexture } );
+				body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+				body.position.y = 34;
+				body.castShadow = true;
+				tank.add(body);
+				
+
+				/*wheel*/
+				const radius  = 10;
+				const tube  = 10;
+				const radialSegments = 30;
+				const tubularSegments = 21;
+				const arc = 6.3;
+				const wheelGeometry = new THREE.TorusBufferGeometry(radius, tube, radialSegments, tubularSegments, arc);
+				const wheelTexture = new THREE.TextureLoader().load( 'textures/tire.jpg' );
+				const wheelMaterial = new THREE.MeshPhongMaterial({map: wheelTexture});
+				const wheelPositions = [
+					[-carWidth / 2 - 8 , -carHeight / 2 + 7,  carLength / 3],	//左下
+					[-carWidth / 2 - 8 , -carHeight / 2 + 7, -carLength / 3],	//左上
+					[ carWidth / 2 + 8 , -carHeight / 2 + 7,  carLength / 3],	//右下
+					[ carWidth / 2 + 8 , -carHeight / 2 + 7, -carLength / 3],	//左下
+				];
+				const wheelMeshes = wheelPositions.map((position) => {
+					var wheel = new THREE.Mesh( wheelGeometry, wheelMaterial );
+					wheel.position.set(...position);
+					wheel.rotation.y = Math.PI * .5;
+					wheel.castShadow = true;
+					wheels.push( wheel );
+					body.add(wheel);
+					return wheel;
+				});
+				
+				
+				/*dome*/
+				var domeGeometry = new THREE.SphereGeometry(40, 32, 32);	//radius,widthSegments,heightSegments,phiStart,phiLength
+				const domeTexture = new THREE.TextureLoader().load( 'textures/stone.jpg' );
+				var domeMaterial = new THREE.MeshPhongMaterial({map: domeTexture});
+				var dome = new THREE.Mesh(domeGeometry, domeMaterial);
+				dome.position.set(0,body.position.y - 10, 0);
+				//dome.rotation.x = -Math.PI/2 ;
+				body.add(dome);
+
+
+				/*turretPivot*/
+				turretPivot = new THREE.Object3D();
+				turretPivot.scale.set(5, 5, 5);
+				turretPivot.position.y += 30;
+				turretPivot.position.z -= 55;
+				turretPivot.rotation.x = -Math.PI / 2.5;
+				dome.add(turretPivot);
+
+
+				/*turret*/
+				const turretRadiusTop = 2;
+				const turretBottom = 2;
+				const turretHeight = 15;
+				const turretRadialSegments = 60;
+				const turretHeightSegments = 60;
+				const turretGeometry = new THREE.CylinderGeometry(turretRadiusTop, turretBottom, turretHeight, turretRadialSegments, turretHeightSegments, 1);
+				const turretTexture = new THREE.TextureLoader().load( 'textures/stone.jpg' );
+				var turretMaterial = new THREE.MeshPhongMaterial( {map: turretTexture} );
+				turret = new THREE.Mesh(turretGeometry, turretMaterial);
+				turret.castShadow = true;
+				turretPivot.add(turret);
+				
+
+				/*cycle*/
+				const cycleRadius  = 1.7;
+				const cycleTube  = 0.5;
+				const cycleAadialSegments = 16;
+				const cycleTubularSegments = 100;
+				const cycleArc = 6.3;
+				const cycleGeometry = new THREE.TorusBufferGeometry(cycleRadius, cycleTube, cycleAadialSegments, cycleTubularSegments, cycleArc);
+				const cycleMaterial = new THREE.MeshPhongMaterial( {color: 0x4A2DF4} );
+				cycle = new THREE.Mesh( cycleGeometry, cycleMaterial );
+				cycle.position.y += 8;
+				cycle.rotation.x = -Math.PI/2.0
+				turret.add( cycle );
+
+				ballsystem = new THREE.Object3D();
+				cycle.add(ballsystem);
+
+				/*ball*/
+				//var ballGeometry = new THREE.SphereGeometry(2,32,32);
+				//var ballMaterial = new THREE.MeshBasicMaterial({color:0x000000});
+				//ball = new THREE.Mesh( ballGeometry, ballMaterial);
+				Py = ballsystem.position.y;
+				Pz = ballsystem.position.z;
+				//ball.position.y = dome.position.y;
+				// ball = makeBall();
+				// ball2 = makeBall();
+				// ball3 = makeBall();
+				// ballsystem.add(ball);
+				// ballsystem.add(ball2);
+				// ballsystem.add(ball3);	
+				
+
+
+				/*renderer*/
+				renderer = new THREE.WebGLRenderer();
+				renderer.setClearColor( 0xa0a0a0 );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.enableKeys = false;
+				window.addEventListener( 'resize', onWindowResize, false );
+				
+
+				/*GUI*/
+				params = new guiMe();
+				gui = new dat.GUI();
+				gui.add(params, 'Heading').listen();
+				gui.add(params, 'BarrelHeading').listen();
+				gui.add(params, 'Velocity').listen();
+				gui.add(params, 'addSpeed', 0, 30);
+				gui.add(params, 'rotSpeed', 0, 30);
+				gui.add(params, 'barrelRotSpeed', 0, 30);
+				gui.add(params, 'Stop');
+				gui.add(params, 'FollowMe');
+				gui.open();
+
+				var rotateAngle = 0;
+				var turretRotateAngle = 0;	//左右
+				window.onkeydown = function( event ) {
+					var key = String.fromCharCode(event.keyCode);
+					var deltaTime = Date.now() - lastTime;
+					lastTime = Date.now();
+			        switch( key ) {
+						case 'w': case 'W':
+							tank.position.x -= Math.sin(rotateAngle) * params.addSpeed;	
+							tank.position.z -= Math.cos(rotateAngle) * params.addSpeed;
+							wheels.forEach((obj) => {obj.rotation.x -= params.addSpeed * 0.02;});
+							break;
+						case 's': case 'S':
+							tank.position.x += Math.sin(rotateAngle) * params.addSpeed;	
+							tank.position.z += Math.cos(rotateAngle) * params.addSpeed;
+							wheels.forEach((obj) => {obj.rotation.x += params.addSpeed * 0.02;});
+							break;
+						case 'a': case 'A':
+							wheels[0].rotation.x += params.rotSpeed * 0.02;
+							wheels[1].rotation.x += params.rotSpeed * 0.02;
+							wheels[2].rotation.x -= params.rotSpeed * 0.02;
+							wheels[3].rotation.x -= params.rotSpeed * 0.02;
+							rotateAngle += Math.PI/180 * params.rotSpeed;
+							tank.lookAt(tank.position.x + Math.sin(rotateAngle), tank.position.y, tank.position.z + Math.cos(rotateAngle));
+							heading = THREE.Math.radToDeg(rotateAngle);
+							while (heading < 0)	heading += 360;
+							heading = (heading) % 360;
+
+							barrelheading =THREE.Math.radToDeg(rotateAngle) + THREE.Math.radToDeg(turretRotateAngle);
+							while (barrelheading < 0)	barrelheading += 360;
+							barrelheading =barrelheading % 360;
+
+							break;
+						case 'd': case 'D':
+							wheels[0].rotation.x -= params.rotSpeed * 0.02;
+							wheels[1].rotation.x -= params.rotSpeed * 0.02;
+							wheels[2].rotation.x += params.rotSpeed * 0.02;
+							wheels[3].rotation.x += params.rotSpeed * 0.02;
+							rotateAngle -= Math.PI/180 * params.rotSpeed;
+							tank.lookAt(tank.position.x + Math.sin(rotateAngle), tank.position.y, tank.position.z + Math.cos(rotateAngle));
+							heading = THREE.Math.radToDeg(rotateAngle);
+							while (heading < 0)	heading += 360;
+							heading = (heading) % 360;
+							
+							barrelheading =THREE.Math.radToDeg(rotateAngle) + THREE.Math.radToDeg(turretRotateAngle);
+							while (barrelheading < 0)	barrelheading += 360;
+							barrelheading = barrelheading % 360;
+							
+							break;
+						case '%':	// <-
+							turretRotateAngle += (Math.PI/180) * params.barrelRotSpeed;
+							dome.rotation.y = turretRotateAngle;
+							barrelheading = THREE.Math.radToDeg(rotateAngle) + THREE.Math.radToDeg(turretRotateAngle);
+							while (barrelheading < 0)	barrelheading += 360;
+							barrelheading = Math.ceil(barrelheading) % 360;
+							
+							break;
+						case '\'':	//->
+							turretRotateAngle -= (Math.PI/180) * params.barrelRotSpeed;
+							dome.rotation.y = turretRotateAngle;
+							barrelheading =THREE.Math.radToDeg(rotateAngle) + THREE.Math.radToDeg(turretRotateAngle);
+							while (barrelheading < 0)	barrelheading += 360;
+							barrelheading = Math.ceil(barrelheading) % 360;
+							break;
+						case '&':	//^
+							turretPivotRrotationX += Math.PI/180 * 5;
+							if (turretPivotRrotationX > 0.52)	turretPivotRrotationX=0.52;
+							turret.rotation.x = turretPivotRrotationX;
+							break;
+						case '(':	//V
+							turretPivotRrotationX -= Math.PI/180 * 5;
+							if (turretPivotRrotationX < -0.226)	turretPivotRrotationX=-0.226;
+							turret.rotation.x = turretPivotRrotationX;
+							break;
+						case ' ':
+							
+							fire = true;
+							ball = makeBall();
+							balls.push(ball);
+							ballsystem.add(balls[shootTimes]);
+							balls[shootTimes].position.y=Py;
+							balls[shootTimes].position.z=Pz;
+							fallingTime=0;
+							shootTimes+=1;
+							break;
+
+			        }
+			    };
+			}
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+			function animate() {
+				requestAnimationFrame( animate );
+				
+				//camera.position.x = tank.position.x; camera.position.z = tank.position.z
+
+				params.Velocity = velocity;
+				params.Heading = heading;
+				params.BarrelHeading = barrelheading;
+
+				if(params.FollowMe){
+					followSwitch = true;
+					camera.position.x = tank.position.x;
+					camera.position.z = tank.position.z + (window.innerHeight / 2);
+					camera.lookAt(tank.position.x, tank.position.y, tank.position.z);
+				}
+				else{
+					if(followSwitch){
+						camera.position.set(cameraPositionX, cameraPositionY, cameraPositionZ);
+						followSwitch = false;
+					}
+				}
+
+				if(fire){
+					//x變化量(等速度):v*t
+					//y變化量(等加速度): (square(t2)-square(t1)) * gravity / 2
+					ball.position.z += shootSpeed * 0.1;
+					var previousPosition =(0.1 + fallingTime) * (0.1 + fallingTime);
+					var thisPosition = fallingTime * fallingTime
+					ball.position.y -= (previousPosition - thisPosition) * gravity / 2;
+					fallingTime+=0.1;
+				}
+				
+				renderer.render( scene, camera );
+				// have the mouse update the view
+				controls.update();
+
+			}
+		</script>
+		
+	</body>
+</html>
