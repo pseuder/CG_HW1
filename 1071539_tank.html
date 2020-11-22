@@ -26,10 +26,7 @@
 		<script src="js/controls/OrbitControls.js"></script>
 		<script src="js/libs/dat.gui.min.js"></script>
 		
-		<button type="button" style="top:0; padding:15px; margin:50px; outline-style: double; outline-width: medium; font-size:20px;"	
-			id="fire" class="ui">Start</button>
-		<button type="button" style="left:100px; padding:15px; margin:50px; outline-style: double; outline-width: medium; font-size:20px;"
-			id="start" class="ui">Restart</button>
+		
 		
 		<script>
 			"use strict";
@@ -43,7 +40,6 @@
 			var velocity=0;
 			var lastTime;
 			var wheels = []
-			var balls = []
 			var fire = false;
 			
 			/*mesh*/
@@ -71,8 +67,7 @@
 
 			/*button*/
 			var buttons = document.getElementsByTagName("button");
-			buttons[0].addEventListener("click", startClick, false);
-			buttons[1].addEventListener("click", restartClick, false);
+			
 
 			var guiMe = function() {
 			  this.Heading = heading;
@@ -94,23 +89,6 @@
 				return new THREE.Mesh( ballGeometry, ballMaterial);
 			}
 
-			function creatEnemy(){
-				var eneTexture = new THREE.TextureLoader().load('textures/BB8.jpg');
-				var eneMaterial = new THREE.MeshPhongMaterial({map: eneTexture}); 
-				var eneGeometry = new THREE.SphereGeometry(30,32,32);
-				var enemy = new THREE.Mesh(eneGeometry, eneMaterial);
-				enemy.position.z += 50;
-				enemy.position.x += Math.sin(Date.now() % 360);
-				enemy.position.y += Math.sin(Date.now() % 360);
-				plane.add(enemy);
-			}
-
-			function startClick(event) {
-				alert("start!");
-				creatEnemy();
-			}
-			function restartClick(event) {	alert("restart!");	}
-			
 			init();
 			animate();
 
@@ -235,20 +213,15 @@
 				ballsystem = new THREE.Object3D();
 				cycle.add(ballsystem);
 
-				/*ball*/
-				//var ballGeometry = new THREE.SphereGeometry(2,32,32);
-				//var ballMaterial = new THREE.MeshBasicMaterial({color:0x000000});
-				//ball = new THREE.Mesh( ballGeometry, ballMaterial);
+				
 				Py = ballsystem.position.y;
 				Pz = ballsystem.position.z;
-				//ball.position.y = dome.position.y;
-				// ball = makeBall();
-				// ball2 = makeBall();
-				// ball3 = makeBall();
-				// ballsystem.add(ball);
-				// ballsystem.add(ball2);
-				// ballsystem.add(ball3);	
 				
+				/*ball*/
+				var ballGeometry = new THREE.SphereGeometry(2,32,32);
+				var ballMaterial = new THREE.MeshBasicMaterial({color:0x000000});
+				ball = new THREE.Mesh( ballGeometry, ballMaterial);
+				ballsystem.add(ball);
 
 
 				/*renderer*/
@@ -350,15 +323,10 @@
 							turret.rotation.x = turretPivotRrotationX;
 							break;
 						case ' ':
-							
 							fire = true;
-							ball = makeBall();
-							balls.push(ball);
-							ballsystem.add(balls[shootTimes]);
-							balls[shootTimes].position.y=Py;
-							balls[shootTimes].position.z=Pz;
+							ball.position.y=Py;
+							ball.position.z=Pz;
 							fallingTime=0;
-							shootTimes+=1;
 							break;
 
 			        }

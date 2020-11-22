@@ -25,16 +25,23 @@
 			var body;
 			var mySystem;
 			var head;
+			var ballsystem;
+			var ball;
 
+			/*parameter*/
+			var gravity = 9.8; // 向上為正
 			var velocity = 0.0;
             var heading = 0;
 			var cameraPositionX, cameraPositionY, cameraPositionZ;
             var followSwitch = false;
             var bodyRotateAngle = 0;
 			var gui, params;
-			
+			var Py, Pz;
 			var up = false, right = false, down = false, left = false;
 			var headleft = false, headright = false, headup = false, headdown = false;
+			var fire = false;
+			var fallingTime = 0;
+			var shootSpeed = 80; 
 			var jump = 0;
 			
 			var activeRange = [-500,500,-500,500];
@@ -98,6 +105,7 @@
                 bodyRotateAngle += body.rotation.y
                 mySystem.add(body);
 
+
                 /*head*/
                 var headGeometry = new THREE.SphereGeometry(20, 32, 32);
 				var headTexture = new THREE.TextureLoader().load( 'textures/BB8-Head.jpg' );
@@ -107,6 +115,18 @@
                 head.position.y += 80;
                 head.rotation.y = -90 * Math.PI / 180;
 				
+
+				/*ball*/
+				ballsystem = new THREE.Object3D();
+				head.add(ballsystem);
+				var ballGeometry = new THREE.SphereGeometry(5,32,32);
+				var ballMaterial = new THREE.MeshBasicMaterial({color:0x000000});
+				ball = new THREE.Mesh( ballGeometry, ballMaterial);
+				ballsystem.add(ball);
+				ballsystem.rotation.y = 90 * Math.PI / 180;
+				Py = ballsystem.position.y;
+				Pz = ballsystem.position.z;
+
 
 				/*renderer*/
 				renderer = new THREE.WebGLRenderer();
@@ -153,6 +173,12 @@
 				if (e.keyCode == 39 /* -> */ )  headright = true;
 				if (e.keyCode == 38 /* ^ */ )   headup = true;
 				if (e.keyCode == 40 /* v */ )   headdown = true;
+				if (e.keyCode == 13 /*enter*/)	{
+					fire = true;
+					ball.position.y=Py;
+					ball.position.z=Pz;
+					fallingTime = 0;
+				}
             }
 
             function release(e){
@@ -227,7 +253,19 @@
 				}
 			}
 
+			function firing(){
+				if (fire){
+					ball.position.z += shootSpeed * 0.1;
+					var previousPosition =(0.1 + fallingTime) * (0.1 + fallingTime);
+					var thisPosition = fallingTime * fallingTime
+					ball.position.y -= (previousPosition - thisPosition) * gravity / 2;
+					fallingTime+=0.1;
+				}
+			}
+
+
             function move(){
+				firing();
 				newPlane();
 				Jumping();
 				headTurning();
