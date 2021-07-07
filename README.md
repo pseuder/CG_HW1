@@ -12,5 +12,5 @@
 * Follow Me 跟隨物體移動
 
 
-# 首次開啟可能比較緩慢!  https://s1071539.github.io/CG_HW1/1071539.html
+# https://s1071539.github.io/CG_HW1/1071539.html
 
