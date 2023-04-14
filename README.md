@@ -36,5 +36,5 @@
     * FollowMe: 將機器人鎖定至camara視角中心
 
 # 線上demo: 
-## [Github page](https://pseuder.github.io/CG_HW1/1071539.html)
+## [Github page](https://pseuder.github.io/CG_HW1/index.html)
 
