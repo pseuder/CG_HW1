@@ -35,11 +35,11 @@
     * Stop: 停止移動
     * FollowMe: 將機器人鎖定至camara視角中心
 # 畫面
-<img width="1710" alt="截圖 2023-04-14 下午3 11 27" src="https://user-images.githubusercontent.com/51692158/231971539-1a7883d3-a038-4cae-9f14-ebb918e7e04b.png">
+<img width="1710" alt="demoimage1" src="https://user-images.githubusercontent.com/51692158/231971539-1a7883d3-a038-4cae-9f14-ebb918e7e04b.png">
 
-<img width="1698" alt="截圖 2023-04-14 下午3 10 20" src="https://user-images.githubusercontent.com/51692158/231971568-7bbf0428-9e87-4542-a413-89da44dba836.png">
+<img width="1698" alt="demoimage2" src="https://user-images.githubusercontent.com/51692158/231971568-7bbf0428-9e87-4542-a413-89da44dba836.png">
 
 
 # 線上demo: 
-## [Github page](https://pseuder.github.io/Threejs_BB8/index.html)
+## [Github page](https://pseuder.github.io/Threejs-BB8/index.html)
 
